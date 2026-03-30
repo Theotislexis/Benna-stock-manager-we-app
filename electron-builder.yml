@@ -1,0 +1,38 @@
+appId: com.ikikecollective.securestockmanager
+productName: Benna Stock Manager
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - node_modules/**/*
+  - server/**/*
+  - database.sqlite
+  - package.json
+  - .env
+
+# Unpack native .node binaries from the ASAR archive so they can be
+# loaded at runtime (native modules cannot be dlopen'd from inside ASAR).
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/better-sqlite3/**/*"
+  - "node_modules/bindings/**/*"
+  - "node_modules/node-gyp-build/**/*"
+
+extraResources:
+  - from: ".env"
+    to: ".env"
+
+win:
+  target: nsis
+  icon: build/icon.ico
+
+mac:
+  target: dmg
+  icon: build/icon.icns
+
+linux:
+  target: AppImage
+  icon: build/icon.png
