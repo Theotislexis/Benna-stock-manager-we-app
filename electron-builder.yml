@@ -1,4 +1,4 @@
-appId: com.ikikecollective.securestockmanager
+appId: com.ikikecollective.bennastockmanager
 productName: Benna Stock Manager
 directories:
   output: release
@@ -25,13 +25,30 @@ extraResources:
   - from: ".env"
     to: ".env"
 
+publish:
+  provider: github
+  releaseType: release
+
 win:
   target: nsis
-  icon: build/icon.ico
+  icon: build/icon.png
 
 mac:
   target: dmg
-  icon: build/icon.icns
+  identity: null
+  icon: build/icon.png
+  category: public.app-category.business
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
 
 linux:
   target: AppImage
