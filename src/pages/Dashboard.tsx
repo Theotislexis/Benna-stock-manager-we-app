@@ -8,7 +8,11 @@ import { formatPrice, formatCurrency } from '../utils/currency';
 interface InventoryItem {
   id: string;
   name: string;
-  category: string;
+  category: {
+    id: string;
+    name_en: string;
+    name_fr: string;
+  };
   quantity: number;
   price: number;
   min_stock: number;
@@ -146,7 +150,7 @@ const Dashboard: React.FC = () => {
                         return (
                           <tr key={item.id} className="border-b hover:bg-gray-50">
                             <td className="py-3 px-4">{item.name}</td>
-                            <td className="py-3 px-4">{item.category}</td>
+                            <td className="py-3 px-4">{item.category?.name_en || t('uncategorized')}</td>
                             <td className="py-3 px-4">{item.quantity}</td>
                             <td className="py-3 px-4">
                               <span

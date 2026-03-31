@@ -294,7 +294,9 @@ const InventoryFormModal: React.FC<{
     category_id: item?.category_id || '',
     quantity: item?.quantity || 0,
     price: item?.price || 0,
-    supplier: item?.supplier || '',
+    supplier: typeof item?.supplier === 'object' && item?.supplier !== null 
+      ? (item.supplier as any).id 
+      : (item?.supplier || ''),
     location: item?.location || '',
     min_stock: item?.min_stock || 10,
     max_stock: item?.max_stock || 100,
@@ -394,7 +396,9 @@ const InventoryFormModal: React.FC<{
               </label>
               <select
                 id="supplier"
-                value={formData.supplier || ''}
+                value={typeof formData.supplier === 'object' && formData.supplier !== null 
+                  ? (formData.supplier as any).id 
+                  : (formData.supplier || '')}
                 onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy"
               >
