@@ -205,7 +205,11 @@ const Inventory: React.FC = () => {
                     <tr key={item.id} className="border-t hover:bg-gray-50">
                       <td className="py-3 px-4">{item.name}</td>
                       <td className="py-3 px-4">{getCategoryName(item.category)}</td>
-                      <td className="py-3 px-4">{item.supplier_name || 'N/A'}</td>
+                      <td className="py-3 px-4">
+                        {typeof item.supplier_name === 'object' && item.supplier_name !== null 
+                          ? (item.supplier_name as any).name || 'N/A'
+                          : (item.supplier_name || 'N/A')}
+                      </td>
                       <td className="py-3 px-4">{item.quantity}</td>
                       <td className="py-3 px-4">{formatPrice(item.price)}</td>
                       <td className="py-3 px-4">{item.location}</td>

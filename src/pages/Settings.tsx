@@ -18,6 +18,12 @@ const Settings: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const [settings, setSettings] = useState({
+    high_balance_threshold: '100000',
+    company_logo: ''
+  });
+  const [saving, setSaving] = useState(false);
+
   const canExport = user?.role === 'admin' || user?.role === 'audit_manager';
 
   useEffect(() => {
@@ -58,7 +64,49 @@ const Settings: React.FC = () => {
         setUpdateInfo(info);
       });
     }
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const data = await fetchApi('/settings');
+      if (data) {
+        setSettings({
+          high_balance_threshold: data.high_balance_threshold || '100000',
+          company_logo: data.company_logo || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      await fetchApi('/settings', {
+        method: 'POST',
+        body: JSON.stringify(settings)
+      });
+      alert(t('settings_saved'));
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert(t('error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings({ ...settings, company_logo: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleCheckForUpdates = async () => {
     if (!window.electron) return;
@@ -306,6 +354,54 @@ const Settings: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {user?.role === 'admin' && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">{t('application_settings')}</h2>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('company_logo')}
+                </label>
+                <div className="flex items-center space-x-4">
+                  {settings.company_logo && (
+                    <img 
+                      src={settings.company_logo} 
+                      alt="Logo" 
+                      className="h-16 w-16 object-contain border rounded p-1" 
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-navy file:text-white hover:file:bg-opacity-90"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('high_balance_threshold')} (GNF)
+                </label>
+                <input
+                  type="number"
+                  value={settings.high_balance_threshold}
+                  onChange={(e) => setSettings({ ...settings, high_balance_threshold: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-navy focus:border-navy"
+                />
+              </div>
+
+              <button
+                onClick={handleSaveSettings}
+                disabled={saving}
+                className="w-full px-4 py-2 bg-navy text-white rounded-md hover:bg-opacity-90 disabled:opacity-50"
+              >
+                {saving ? t('saving') : t('save_settings')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showExportModal && (

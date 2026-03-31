@@ -148,6 +148,13 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  )
+`);
+
 // Add columns to existing tables if they don't have them
 const tables = ['users', 'inventory', 'audit_logs', 'categories', 'suppliers', 'orders', 'order_items', 'payments'];
 for (const table of tables) {
@@ -155,6 +162,8 @@ for (const table of tables) {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN sync_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`); } catch (e) {}
 }
 try { db.exec(`ALTER TABLE inventory ADD COLUMN category_id TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE order_items ADD COLUMN delivered_quantity INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN delivery_status TEXT DEFAULT 'pending'`); } catch (e) {}
 
 // Ensure record_id columns are correctly handled (if they were INTEGER, they might still work, but TEXT is safer for UUIDs)
 // Note: ALTER TABLE in SQLite doesn't easily change column type, but SQLite's flexibility should allow UUID strings in INTEGER cols.
@@ -172,6 +181,19 @@ if (!checkAdmin) {
     'admin'
   );
   console.log('[Database] Default admin user created');
+}
+
+// Seed default settings
+const seedSettings = [
+  { key: 'high_balance_threshold', value: '100000' },
+  { key: 'company_logo', value: '' }
+];
+
+for (const setting of seedSettings) {
+  const exists = db.prepare('SELECT * FROM settings WHERE key = ?').get(setting.key);
+  if (!exists) {
+    db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run(setting.key, setting.value);
+  }
 }
 
 export default db;

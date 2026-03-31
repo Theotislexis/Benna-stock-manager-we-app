@@ -53,6 +53,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

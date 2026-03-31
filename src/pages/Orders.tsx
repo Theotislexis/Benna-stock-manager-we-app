@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Eye, ListFilter as Filter } from 'lucide-react';
+import { Plus, Eye, ListFilter as Filter, AlertTriangle } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency } from '../utils/currency';
@@ -36,13 +36,26 @@ export default function Orders() {
     end_date: '',
     unpaid: searchParams.get('unpaid') === 'true'
   });
+  const [threshold, setThreshold] = useState(100000);
 
   const canEdit = user?.role === 'admin' || user?.role === 'audit_manager';
 
   useEffect(() => {
     fetchSuppliers();
     fetchOrders();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const data = await fetchApi('/settings');
+      if (data && data.high_balance_threshold) {
+        setThreshold(parseFloat(data.high_balance_threshold));
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -230,7 +243,10 @@ export default function Orders() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
+              <tr 
+                key={order.id} 
+                className={`hover:bg-gray-50 transition-colors ${order.balance > threshold ? 'bg-red-50' : ''}`}
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {new Date(order.order_date).toLocaleDateString()}
                 </td>
@@ -244,7 +260,12 @@ export default function Orders() {
                   {formatCurrency(order.paid_amount)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                  {formatCurrency(order.balance)}
+                  <div className="flex items-center gap-2">
+                    {formatCurrency(order.balance)}
+                    {order.balance > threshold && (
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>

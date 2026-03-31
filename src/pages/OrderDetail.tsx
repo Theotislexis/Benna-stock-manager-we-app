@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, CreditCard as Edit2, Trash2, DollarSign } from 'lucide-react';
+import { ArrowLeft, Plus, CreditCard as Edit2, Trash2, DollarSign, Printer, CheckCircle } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency } from '../utils/currency';
+import { generateOrderPDF } from '../utils/pdfExport';
 
 interface OrderItem {
   id: string;
@@ -13,6 +14,7 @@ interface OrderItem {
   unit_price: number;
   total: number;
   inventory_item_id: string | null;
+  delivered_quantity: number;
 }
 
 interface Payment {
@@ -35,7 +37,9 @@ interface Order {
   total_amount: number;
   paid_amount: number;
   status: string;
+  delivery_status?: string;
   notes: string | null;
+  balance: number;
   items: OrderItem[];
   payments: Payment[];
 }
@@ -80,6 +84,37 @@ export default function OrderDetail() {
       console.error('Error fetching order:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!order) return;
+    try {
+      const settings = await fetchApi('/settings');
+      generateOrderPDF(order, settings || {}, t);
+    } catch (error) {
+      console.error('Error printing PDF:', error);
+    }
+  };
+
+  const handleUpdateDelivery = async (itemId: string, current: number, max: number) => {
+    const newVal = prompt(`${t('delivered_quantity')} (Max: ${max})`, current.toString());
+    if (newVal === null) return;
+    
+    const quantity = parseInt(newVal);
+    if (isNaN(quantity) || quantity < 0 || quantity > max) {
+      alert(t('error'));
+      return;
+    }
+
+    try {
+      await fetchApi(`/api/orders/${id}/items/${itemId}/delivery`, {
+        method: 'PUT',
+        body: JSON.stringify({ delivered_quantity: quantity })
+      });
+      fetchOrder();
+    } catch (error) {
+      console.error('Error updating delivery:', error);
     }
   };
 
@@ -220,6 +255,16 @@ export default function OrderDetail() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-3xl font-bold text-[#001f3f]">{t('order_details')}</h1>
+        <div className="flex-1" />
+        {canEdit && (
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 bg-white text-[#001f3f] border border-[#001f3f] px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Printer className="w-5 h-5" />
+            {t('print')}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -244,6 +289,10 @@ export default function OrderDetail() {
               <div>
                 <span className="font-medium text-gray-700">{t('status')}:</span>
                 <p className="text-gray-900">{t(order.status)}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">{t('delivery_status')}:</span>
+                <p className="text-gray-900 font-semibold">{t(order.delivery_status || 'pending')}</p>
               </div>
             </div>
             {order.notes && (
@@ -279,6 +328,12 @@ export default function OrderDetail() {
                       {t('quantity')}
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('delivered_quantity')}
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('remaining')}
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                       {t('unit_price')}
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
@@ -296,6 +351,27 @@ export default function OrderDetail() {
                     <tr key={item.id}>
                       <td className="px-4 py-2 text-sm text-gray-900">{item.description}</td>
                       <td className="px-4 py-2 text-sm text-gray-900">{item.quantity}</td>
+                      <td className="px-4 py-2 text-sm text-gray-900">
+                        <div className="flex items-center gap-2">
+                          {item.delivered_quantity}
+                          {canEdit && (
+                            <button 
+                              onClick={() => handleUpdateDelivery(item.id, item.delivered_quantity, item.quantity)}
+                              className="text-navy hover:text-opacity-70"
+                              title={t('update')}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900">
+                        {item.quantity - item.delivered_quantity > 0 ? (
+                          <span className="text-orange-600 font-medium">{item.quantity - item.delivered_quantity}</span>
+                        ) : (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-sm text-gray-900">{formatCurrency(item.unit_price)}</td>
                       <td className="px-4 py-2 text-sm font-semibold text-gray-900">{formatCurrency(item.total)}</td>
                       {canEdit && (

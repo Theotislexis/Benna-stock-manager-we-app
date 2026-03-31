@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useSync } from '../contexts/SyncContext';
 import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
+import { fetchApi } from '../lib/api';
 
 const Layout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const { syncStatus, pendingCount, triggerSync, isOnline } = useSync();
   const location = useLocation();
+  const [logo, setLogo] = React.useState<string | null>(null);
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'en' ? 'fr' : 'en';
@@ -21,13 +23,24 @@ const Layout: React.FC = () => {
     return location.pathname === path ? 'bg-navy bg-opacity-20' : '';
   };
 
+  React.useEffect(() => {
+    fetchApi('/settings').then(settings => {
+      if (settings?.company_logo) {
+        setLogo(settings.company_logo);
+      }
+    }).catch(console.error);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-navy text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold">{t('app_title')}</h1>
+              <div className="flex items-center space-x-3">
+                {logo && <img src={logo} alt="Logo" className="h-8 w-8 object-contain bg-white rounded-sm p-0.5" />}
+                <h1 className="text-xl font-bold">{t('app_title')}</h1>
+              </div>
               <div className="hidden md:flex space-x-4">
                 <Link
                   to="/dashboard"

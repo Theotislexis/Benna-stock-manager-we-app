@@ -379,4 +379,67 @@ router.delete('/:orderId/items/:itemId', authenticateToken, (req, res) => {
   }
 });
 
+// Update item delivery status
+router.put('/:orderId/items/:itemId/delivery', authenticateToken, (req, res) => {
+  try {
+    const { orderId, itemId } = req.params;
+    const { delivered_quantity } = req.body;
+
+    if (req.user.role === 'user') {
+      return res.status(403).json({ message: 'Users cannot update delivery status' });
+    }
+
+    const oldItem = db.prepare('SELECT * FROM order_items WHERE id = ? AND order_id = ?').get(itemId, orderId);
+    if (!oldItem) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    db.prepare(`
+      UPDATE order_items 
+      SET delivered_quantity = ?, sync_status = 'pending', sync_updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND order_id = ?
+    `).run(delivered_quantity, itemId, orderId);
+
+    const updatedItem = db.prepare('SELECT * FROM order_items WHERE id = ?').get(itemId);
+    db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(
+      'order_items', itemId, 'UPDATE', JSON.stringify(updatedItem)
+    );
+
+    // Update order delivery status
+    const items = db.prepare('SELECT quantity, delivered_quantity FROM order_items WHERE order_id = ?').all(orderId);
+    
+    let allDelivered = true;
+    let noneDelivered = true;
+    
+    for (const item of items) {
+      if (item.delivered_quantity < item.quantity) {
+        allDelivered = false;
+      }
+      if (item.delivered_quantity > 0) {
+        noneDelivered = false;
+      }
+    }
+
+    let newDeliveryStatus = 'pending';
+    if (allDelivered) {
+      newDeliveryStatus = 'delivered';
+    } else if (!noneDelivered) {
+      newDeliveryStatus = 'partial';
+    }
+
+    db.prepare('UPDATE orders SET delivery_status = ?, sync_status = \'pending\', sync_updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(newDeliveryStatus, orderId);
+    const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+    db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(
+      'orders', orderId, 'UPDATE', JSON.stringify(updatedOrder)
+    );
+
+    logAudit(req.user.id, 'updated_delivery', itemId, oldItem, { delivered_quantity }, req.ip);
+
+    res.json({ item: updatedItem, order: updatedOrder });
+  } catch (error) {
+    console.error('Error updating delivery status:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 export default router;

@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../database.js';
-import { JWT_SECRET } from '../middleware/auth.js';
+import { authenticateToken, JWT_SECRET } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -49,6 +49,19 @@ router.post('/login', (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/me', authenticateToken, (req, res) => {
+  try {
+    const user = db.prepare('SELECT id, email, name, role FROM users WHERE id = ?').get(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Verify token error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

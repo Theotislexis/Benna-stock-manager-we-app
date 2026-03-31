@@ -20,6 +20,13 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   });
 
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('benna_cached_user');
+      // Force a page reload or let the app handle the missing user in the next cycle
+      if (typeof window !== 'undefined') window.location.reload();
+    }
+    
     let errorMsg = 'An error occurred';
     try {
       const errBody = await res.json();

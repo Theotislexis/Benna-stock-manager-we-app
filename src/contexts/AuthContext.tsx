@@ -52,16 +52,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Attempt to restore user from cache on initial load
-    const cached = loadCachedUser();
-    const token = localStorage.getItem(TOKEN_KEY);
+    const verifyToken = async () => {
+      const cached = loadCachedUser();
+      const token = localStorage.getItem(TOKEN_KEY);
 
-    if (cached && token) {
-      setUser(cached);
-      setIsAuthenticated(true);
-      console.log('[Auth] Restored cached user:', cached.email);
-    }
-    
-    setLoading(false);
+      if (cached && token) {
+        try {
+          // Verify with server
+          const res = await fetch('http://localhost:5000/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (res.ok) {
+            const serverUser = await res.json();
+            setUser(serverUser);
+            setIsAuthenticated(true);
+            console.log('[Auth] Restored and verified cached user:', serverUser.email);
+          } else {
+            // Token invalid or user not found
+            console.warn('[Auth] Cached token invalid, clearing state');
+            logout();
+          }
+        } catch (error) {
+          console.error('[Auth] Token verification failed:', error);
+          // Don't log out on network error, keep current state (offline support)
+          setUser(cached);
+          setIsAuthenticated(true);
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    verifyToken();
   }, []);
 
   const login = async (email: string, password: string) => {
