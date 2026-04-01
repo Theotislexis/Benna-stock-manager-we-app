@@ -181,6 +181,19 @@ try { db.exec(`ALTER TABLE inventory ADD COLUMN category_id TEXT`); } catch (e) 
 try { db.exec(`ALTER TABLE order_items ADD COLUMN delivered_quantity INTEGER DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN delivery_status TEXT DEFAULT 'pending'`); } catch (e) {}
 
+// Add functional indexes for performance
+try {
+  db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_category_id ON inventory(category_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_supplier ON inventory(supplier)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_name ON inventory(name)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_audit_logs_table_record ON audit_logs(table_name, record_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_usage_logs_item_id ON usage_logs(inventory_item_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_usage_logs_timestamp ON usage_logs(timestamp)');
+} catch (e) {
+  console.warn('[Database] Failed to create secondary indexes:', e.message);
+}
+
 // Ensure record_id columns are correctly handled (if they were INTEGER, they might still work, but TEXT is safer for UUIDs)
 // Note: ALTER TABLE in SQLite doesn't easily change column type, but SQLite's flexibility should allow UUID strings in INTEGER cols.
 

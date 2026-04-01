@@ -32,12 +32,18 @@ const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { lastSyncedAt } = useSync();
-  const [items, setItems] = useState<InventoryItem[]>([]);
   const [outstandingPayments, setOutstandingPayments] = useState<{
     total: number;
     count: number;
     recentOrders: OutstandingOrder[];
   }>({ total: 0, count: 0, recentOrders: [] });
+  const [stats, setStats] = useState({
+    totalItems: 0,
+    lowStockCount: 0,
+    outOfStockCount: 0,
+    totalValue: 0
+  });
+  const [recentItems, setRecentItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,17 +52,33 @@ const Dashboard: React.FC = () => {
 
   const refreshData = () => {
     setLoading(true);
-    Promise.all([fetchItems(), fetchOutstandingPayments()]).finally(() => {
+    Promise.all([fetchStats(), fetchRecentItems(), fetchOutstandingPayments()]).finally(() => {
       setLoading(false);
     });
   };
 
-  const fetchItems = async () => {
+  const fetchStats = async () => {
     try {
-      const data = await fetchApi('/inventory');
-      setItems(data || []);
+      const data = await fetchApi('/inventory/stats/summary');
+      if (data) {
+        setStats({
+          totalItems: data.totalItems || 0,
+          lowStockCount: data.lowStockItems || 0,
+          outOfStockCount: data.outOfStockItems || 0,
+          totalValue: data.totalValue || 0
+        });
+      }
     } catch (error) {
-      console.error('Error fetching inventory:', error);
+      console.error('Error fetching dashboard stats:', error);
+    }
+  };
+
+  const fetchRecentItems = async () => {
+    try {
+      const data = await fetchApi('/inventory?limit=5');
+      setRecentItems(data.items || []);
+    } catch (error) {
+      console.error('Error fetching recent inventory:', error);
     }
   };
 
@@ -75,22 +97,13 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const totalItems = items.length;
-  const lowStockCount = items.filter((item) => item.quantity <= item.min_stock && item.quantity > 0).length;
-  const outOfStockCount = items.filter((item) => item.quantity === 0).length;
-  const totalValue = items.reduce((sum, item) => {
-    const q = Number(item.quantity) || 0;
-    const p = Number(item.price) || 0;
-    return sum + (q * p);
-  }, 0);
-
-  const stats = [
-    { title: t('total_items'), value: totalItems, icon: Package, color: 'bg-blue-500' },
-    { title: t('low_stock'), value: lowStockCount, icon: AlertTriangle, color: 'bg-yellow-500' },
-    { title: t('out_of_stock'), value: outOfStockCount, icon: XCircle, color: 'bg-red-500' },
+  const statCards = [
+    { title: t('total_items'), value: stats.totalItems, icon: Package, color: 'bg-blue-500' },
+    { title: t('low_stock'), value: stats.lowStockCount, icon: AlertTriangle, color: 'bg-yellow-500' },
+    { title: t('out_of_stock'), value: stats.outOfStockCount, icon: XCircle, color: 'bg-red-500' },
     {
       title: t('total_value'),
-      value: formatPrice(totalValue),
+      value: formatPrice(stats.totalValue),
       icon: DollarSign,
       color: 'bg-green-500',
     },
@@ -113,7 +126,7 @@ const Dashboard: React.FC = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            {stats.map((stat) => (
+            {statCards.map((stat) => (
               <div
                 key={stat.title}
                 className={`bg-white rounded-lg shadow-md p-6 border border-gray-200 ${stat.clickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''
@@ -136,7 +149,7 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('recent_inventory')}</h2>
-              {items.length === 0 ? (
+              {recentItems.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">{t('no_data')}</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -150,13 +163,13 @@ const Dashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {items.slice(0, 5).map((item) => {
+                      {recentItems.map((item) => {
                         const status =
                           item.quantity === 0
                             ? 'outOfStock'
                             : item.quantity <= item.min_stock
-                              ? 'lowStock'
-                              : 'inStock';
+                            ? 'lowStock'
+                            : 'inStock';
                         return (
                           <tr key={item.id} className="border-b hover:bg-gray-50">
                             <td className="py-3 px-4">{item.name}</td>
@@ -164,12 +177,13 @@ const Dashboard: React.FC = () => {
                             <td className="py-3 px-4">{item.quantity}</td>
                             <td className="py-3 px-4">
                               <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${status === 'inStock'
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  status === 'inStock'
                                     ? 'bg-green-100 text-green-800'
                                     : status === 'lowStock'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-red-100 text-red-800'
-                                  }`}
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
                               >
                                 {t(status)}
                               </span>

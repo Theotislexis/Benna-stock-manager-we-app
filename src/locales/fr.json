@@ -189,5 +189,10 @@
   "received_by": "Reçu par",
   "purchase_order": "Bon de commande",
   "order_number": "Numéro de commande",
-  "signature": "Signature"
+  "signature": "Signature",
+  "showing": "Affichage de",
+  "results": "résultats",
+  "page": "Page",
+  "previous": "Précédent",
+  "next": "Suivant"
 }

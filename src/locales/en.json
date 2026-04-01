@@ -189,5 +189,10 @@
   "received_by": "Received by",
   "purchase_order": "Purchase Order",
   "order_number": "Order Number",
-  "signature": "Signature"
+  "signature": "Signature",
+  "showing": "Showing",
+  "results": "results",
+  "page": "Page",
+  "previous": "Previous",
+  "next": "Next"
 }

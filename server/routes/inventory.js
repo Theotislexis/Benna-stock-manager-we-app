@@ -45,14 +45,46 @@ const isEditingFrozen = (userRole) => {
 
 router.get('/', authenticateToken, (req, res) => {
   try {
-    const items = db.prepare(`
+    const { limit = 50, offset = 0, search = '', category_id } = req.query;
+    
+    let sql = `
       SELECT i.*, c.name_en, c.name_fr, s.name as supplier_name
       FROM inventory i
       LEFT JOIN categories c ON i.category_id = c.id
       LEFT JOIN suppliers s ON i.supplier = s.id
-      ORDER BY i.last_updated DESC
-    `).all();
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (search) {
+      sql += ` AND (i.name LIKE ? OR i.location LIKE ? OR s.name LIKE ? OR c.name_en LIKE ? OR c.name_fr LIKE ?)`;
+      const searchParam = `%${search}%`;
+      params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
+    }
+
+    if (category_id) {
+      sql += ` AND i.category_id = ?`;
+      params.push(category_id);
+    }
+
+    sql += ` ORDER BY i.last_updated DESC LIMIT ? OFFSET ?`;
+    params.push(parseInt(limit), parseInt(offset));
+
+    const items = db.prepare(sql).all(...params);
     
+    // Also get total count for pagination metadata
+    let countSql = `SELECT COUNT(*) as count FROM inventory i LEFT JOIN suppliers s ON i.supplier = s.id LEFT JOIN categories c ON i.category_id = c.id WHERE 1=1`;
+    const countParams = [];
+    if (search) {
+      countSql += ` AND (i.name LIKE ? OR i.location LIKE ? OR s.name LIKE ? OR c.name_en LIKE ? OR c.name_fr LIKE ?)`;
+      countParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    if (category_id) {
+      countSql += ` AND i.category_id = ?`;
+      countParams.push(category_id);
+    }
+    const totalCount = db.prepare(countSql).get(...countParams).count;
+
     // Map joined columns into a category and supplier object for the frontend
     const mappedItems = items.map(item => ({
       ...item,
@@ -64,7 +96,12 @@ router.get('/', authenticateToken, (req, res) => {
       supplier_name: item.supplier_name || item.supplier // Fallback to raw value if join fails
     }));
     
-    res.json(mappedItems);
+    res.json({
+      items: mappedItems,
+      totalCount,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
   } catch (error) {
     console.error('Get inventory error:', error);
     res.status(500).json({ error: 'Internal server error', message: error.message });
@@ -226,12 +263,14 @@ router.delete('/:id', authenticateToken, (req, res) => {
 router.get('/stats/summary', authenticateToken, (req, res) => {
   try {
     const totalItems = db.prepare('SELECT COUNT(*) as count FROM inventory').get().count;
-    const lowStockItems = db.prepare('SELECT COUNT(*) as count FROM inventory WHERE quantity <= min_stock').get().count;
+    const lowStockItems = db.prepare('SELECT COUNT(*) as count FROM inventory WHERE quantity <= min_stock AND quantity > 0').get().count;
+    const outOfStockItems = db.prepare('SELECT COUNT(*) as count FROM inventory WHERE quantity = 0').get().count;
     const totalValue = db.prepare('SELECT SUM(quantity * price) as value FROM inventory').get().value || 0;
 
     res.json({
       totalItems,
       lowStockItems,
+      outOfStockItems,
       totalValue: parseFloat(totalValue.toFixed(2)),
     });
   } catch (error) {
