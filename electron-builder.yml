@@ -1,5 +1,6 @@
 appId: com.ikikecollective.bennastockmanager
 productName: Benna Stock Manager
+npmRebuild: false
 directories:
   output: release
   buildResources: build

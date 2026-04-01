@@ -18,6 +18,25 @@ const logAudit = (userId, action, recordId, oldValues, newValues, ipAddress) => 
   );
 };
 
+const logUsage = (userId, inventoryId, itemName, oldQty, newQty) => {
+  const quantityChanged = oldQty - newQty;
+  if (quantityChanged <= 0) return; // Only log stock reduction as usage
+
+  const result = db.prepare(
+    'INSERT INTO usage_logs (inventory_item_id, item_name, quantity_changed, previous_quantity, new_quantity, user_id) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(inventoryId, itemName, quantityChanged, oldQty, newQty, userId);
+
+  const usageLog = db.prepare('SELECT * FROM usage_logs WHERE id = ?').get(result.lastInsertRowid);
+
+  // Add to sync queue
+  db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(
+    'usage_logs',
+    result.lastInsertRowid,
+    'INSERT',
+    JSON.stringify(usageLog)
+  );
+};
+
 const isEditingFrozen = (userRole) => {
   const today = new Date();
   const dayOfMonth = today.getDate();
@@ -158,6 +177,11 @@ router.put('/:id', authenticateToken, (req, res) => {
     );
 
     logAudit(req.user.id, 'updated', id, oldItem, updatedItem, req.ip);
+
+    // Explicitly log usage if quantity decreased
+    if (oldItem.quantity > updatedItem.quantity) {
+      logUsage(req.user.id, id, updatedItem.name, oldItem.quantity, updatedItem.quantity);
+    }
 
     res.json(updatedItem);
   } catch (error) {

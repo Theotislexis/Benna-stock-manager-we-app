@@ -20,13 +20,12 @@
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
     "electron:build:mac": "npm run build && electron-builder --mac",
-    "electron:build:linux": "npm run build && electron-builder --linux",
-    "postinstall": "electron-builder install-app-deps"
+    "electron:build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^11.1.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "electron-log": "^5.4.3",
@@ -62,46 +61,5 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.11"
-  },
-  "build": {
-    "appId": "com.ikikecollective.bennastockmanager",
-    "productName": "Benna Stock Manager",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "server/**/*",
-      ".env",
-      "database.sqlite",
-      "node_modules/**/*",
-      "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!node_modules/*.d.ts",
-      "!node_modules/.bin"
-    ],
-    "extraResources": [
-      {
-        "from": ".env",
-        "to": ".env"
-      }
-    ],
-    "publish": {
-      "provider": "github",
-      "releaseType": "release"
-    },
-    "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
-    },
-    "mac": {
-      "target": "zip",
-      "icon": "build/icon.icns"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "build/icon.png"
-    }
   }
 }

@@ -11,6 +11,7 @@ import paymentsRoutes from './routes/payments.js';
 import categoriesRoutes from './routes/categories.js';
 import reportsRoutes from './routes/reports.js';
 import syncRoutes from './routes/sync.js';
+import settingsRoutes from './routes/settings.js';
 import './database.js';
 
 const app = express();
@@ -38,7 +39,7 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // ---------------------------------------------------------------------------
 // Routes

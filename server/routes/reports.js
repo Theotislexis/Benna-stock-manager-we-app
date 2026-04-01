@@ -89,6 +89,26 @@ router.get('/usage', authenticateToken, (req, res) => {
   }
 });
 
+// Get recent usage events
+router.get('/usage-events', authenticateToken, (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    
+    const logs = db.prepare(`
+      SELECT ul.*, u.name as user_name, u.email as user_email
+      FROM usage_logs ul
+      LEFT JOIN users u ON ul.user_id = u.id
+      ORDER BY ul.timestamp DESC
+      LIMIT ?
+    `).all(limit);
+
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching usage events:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get low stock report
 router.get('/low-stock', authenticateToken, (req, res) => {
   try {

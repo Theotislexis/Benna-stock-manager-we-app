@@ -74,22 +74,30 @@ export const generateOrderPDF = (order: OrderData, settings: Settings, t: (key: 
     body: tableData,
     headStyles: { fillColor: [0, 31, 63] },
     alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: {
+      1: { halign: 'center' },
+      2: { halign: 'right' },
+      3: { halign: 'right' }
+    },
+    styles: { cellPadding: 2, fontSize: 10 }
   });
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
 
   // Totals
   doc.setFontSize(10);
-  const totalsX = pageWidth - 60;
-  doc.text(`${t('total_amount')}:`, totalsX, finalY);
-  doc.text(formatCurrency(order.total_amount).replace(/\u00A0/g, ' '), pageWidth - 15, finalY, { align: 'right' });
+  const totalsLabelX = pageWidth - 45;
+  const totalsValueX = pageWidth - 14;
   
-  doc.text(`${t('paid_amount')}:`, totalsX, finalY + 7);
-  doc.text(formatCurrency(order.paid_amount).replace(/\u00A0/g, ' '), pageWidth - 15, finalY + 7, { align: 'right' });
+  doc.text(`${t('total_amount')}:`, totalsLabelX, finalY, { align: 'right' });
+  doc.text(formatCurrency(order.total_amount).replace(/\u00A0/g, ' '), totalsValueX, finalY, { align: 'right' });
+  
+  doc.text(`${t('paid_amount')}:`, totalsLabelX, finalY + 7, { align: 'right' });
+  doc.text(formatCurrency(order.paid_amount).replace(/\u00A0/g, ' '), totalsValueX, finalY + 7, { align: 'right' });
   
   doc.setFont('helvetica', 'bold');
-  doc.text(`${t('balance')}:`, totalsX, finalY + 14);
-  doc.text(formatCurrency(order.balance).replace(/\u00A0/g, ' '), pageWidth - 15, finalY + 14, { align: 'right' });
+  doc.text(`${t('balance')}:`, totalsLabelX, finalY + 14, { align: 'right' });
+  doc.text(formatCurrency(order.balance).replace(/\u00A0/g, ' '), totalsValueX, finalY + 14, { align: 'right' });
 
   // Signatures
   const sigY = finalY + 40;

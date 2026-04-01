@@ -13,9 +13,21 @@ interface UsageData {
   usage_percentage: string;
 }
 
+interface UsageEvent {
+  id: number;
+  item_name: string;
+  quantity_changed: number;
+  previous_quantity: number;
+  new_quantity: number;
+  user_name: string;
+  user_email: string;
+  timestamp: string;
+}
+
 export default function UsageReports() {
   const { t, i18n } = useTranslation();
   const [usageData, setUsageData] = useState<UsageData[]>([]);
+  const [usageEvents, setUsageEvents] = useState<UsageEvent[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -27,6 +39,7 @@ export default function UsageReports() {
   useEffect(() => {
     fetchCategories();
     fetchUsageData();
+    fetchUsageEvents();
   }, []);
 
   useEffect(() => {
@@ -56,6 +69,15 @@ export default function UsageReports() {
       console.error('Error fetching usage data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsageEvents = async () => {
+    try {
+      const data = await fetchApi('/api/reports/usage-events');
+      setUsageEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching usage events:', error);
     }
   };
 
@@ -211,6 +233,66 @@ export default function UsageReports() {
           </ul>
         </div>
       )}
+
+      {/* Recent Usage History Section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('recent_usage_history') || 'Recent Usage History'}</h2>
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('item_name')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('quantity_changed') || 'Quantity Changed'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('previous_stock') || 'Previous Stock'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('new_stock') || 'New Stock'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('user') || 'User'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('timestamp')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {usageEvents.map((event) => (
+                <tr key={event.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {event.item_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">
+                    -{event.quantity_changed}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {event.previous_quantity}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {event.new_quantity}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {event.user_name || event.user_email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(event.timestamp).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {usageEvents.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              {t('no_usage_events_found') || 'No recent usage events found.'}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

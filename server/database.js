@@ -65,6 +65,22 @@ db.exec(`
 `);
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS usage_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    inventory_item_id TEXT NOT NULL,
+    item_name TEXT NOT NULL,
+    quantity_changed INTEGER NOT NULL,
+    previous_quantity INTEGER NOT NULL,
+    new_quantity INTEGER NOT NULL,
+    user_id INTEGER,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    sync_status TEXT DEFAULT 'synced',
+    sync_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`);
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY,
     name_en TEXT NOT NULL,
@@ -156,7 +172,7 @@ db.exec(`
 `);
 
 // Add columns to existing tables if they don't have them
-const tables = ['users', 'inventory', 'audit_logs', 'categories', 'suppliers', 'orders', 'order_items', 'payments'];
+const tables = ['users', 'inventory', 'audit_logs', 'usage_logs', 'categories', 'suppliers', 'orders', 'order_items', 'payments'];
 for (const table of tables) {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN sync_status TEXT DEFAULT 'synced'`); } catch (e) {}
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN sync_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`); } catch (e) {}

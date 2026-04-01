@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { Package, TriangleAlert as AlertTriangle, DollarSign, Circle as XCircle, CreditCard } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { formatPrice, formatCurrency } from '../utils/currency';
+import { useSync } from '../contexts/SyncContext';
 
 interface InventoryItem {
   id: string;
   name: string;
-  category: {
+  category?: {
     id: string;
     name_en: string;
     name_fr: string;
@@ -30,6 +31,7 @@ interface OutstandingOrder {
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { lastSyncedAt } = useSync();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [outstandingPayments, setOutstandingPayments] = useState<{
     total: number;
@@ -39,10 +41,15 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    refreshData();
+  }, [lastSyncedAt]);
+
+  const refreshData = () => {
+    setLoading(true);
     Promise.all([fetchItems(), fetchOutstandingPayments()]).finally(() => {
       setLoading(false);
     });
-  }, []);
+  };
 
   const fetchItems = async () => {
     try {
@@ -71,7 +78,11 @@ const Dashboard: React.FC = () => {
   const totalItems = items.length;
   const lowStockCount = items.filter((item) => item.quantity <= item.min_stock && item.quantity > 0).length;
   const outOfStockCount = items.filter((item) => item.quantity === 0).length;
-  const totalValue = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+  const totalValue = items.reduce((sum, item) => {
+    const q = Number(item.quantity) || 0;
+    const p = Number(item.price) || 0;
+    return sum + (q * p);
+  }, 0);
 
   const stats = [
     { title: t('total_items'), value: totalItems, icon: Package, color: 'bg-blue-500' },
@@ -105,9 +116,8 @@ const Dashboard: React.FC = () => {
             {stats.map((stat) => (
               <div
                 key={stat.title}
-                className={`bg-white rounded-lg shadow-md p-6 border border-gray-200 ${
-                  stat.clickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''
-                }`}
+                className={`bg-white rounded-lg shadow-md p-6 border border-gray-200 ${stat.clickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''
+                  }`}
                 onClick={stat.onClick}
               >
                 <div className="flex items-center justify-between">
@@ -145,8 +155,8 @@ const Dashboard: React.FC = () => {
                           item.quantity === 0
                             ? 'outOfStock'
                             : item.quantity <= item.min_stock
-                            ? 'lowStock'
-                            : 'inStock';
+                              ? 'lowStock'
+                              : 'inStock';
                         return (
                           <tr key={item.id} className="border-b hover:bg-gray-50">
                             <td className="py-3 px-4">{item.name}</td>
@@ -154,13 +164,12 @@ const Dashboard: React.FC = () => {
                             <td className="py-3 px-4">{item.quantity}</td>
                             <td className="py-3 px-4">
                               <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  status === 'inStock'
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${status === 'inStock'
                                     ? 'bg-green-100 text-green-800'
                                     : status === 'lowStock'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}
                               >
                                 {t(status)}
                               </span>

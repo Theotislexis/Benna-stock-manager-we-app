@@ -394,11 +394,26 @@ router.put('/:orderId/items/:itemId/delivery', authenticateToken, (req, res) => 
       return res.status(404).json({ message: 'Item not found' });
     }
 
+    const oldDelivered = oldItem.delivered_quantity || 0;
+    const delta = delivered_quantity - oldDelivered;
+
     db.prepare(`
       UPDATE order_items 
       SET delivered_quantity = ?, sync_status = 'pending', sync_updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND order_id = ?
     `).run(delivered_quantity, itemId, orderId);
+
+    // If linked to an inventory item, update the physical stock
+    if (delta !== 0 && oldItem.inventory_item_id) {
+      db.prepare(
+        'UPDATE inventory SET quantity = quantity + ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?'
+      ).run(delta, oldItem.inventory_item_id);
+
+      const updatedInv = db.prepare('SELECT * FROM inventory WHERE id = ?').get(oldItem.inventory_item_id);
+      db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(
+        'inventory', oldItem.inventory_item_id, 'UPDATE', JSON.stringify(updatedInv)
+      );
+    }
 
     const updatedItem = db.prepare('SELECT * FROM order_items WHERE id = ?').get(itemId);
     db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(
