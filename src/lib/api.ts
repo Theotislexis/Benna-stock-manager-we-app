@@ -27,11 +27,12 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
       if (typeof window !== 'undefined') window.location.reload();
     }
     
-    let errorMsg = 'An error occurred';
+    let errorMsg = `Server error (${res.status})`;
     try {
       const errBody = await res.json();
-      errorMsg = errBody.error || errBody.message || errorMsg;
+      errorMsg = errBody.error || errBody.message || errBody.details ? `${errBody.error || 'Error'}: ${JSON.stringify(errBody.details)}` : (errBody.error || errBody.message || errorMsg);
     } catch (_) {}
+    console.error(`[API Error] ${options.method || 'GET'} ${url}: ${errorMsg}`);
     throw new Error(errorMsg);
   }
 

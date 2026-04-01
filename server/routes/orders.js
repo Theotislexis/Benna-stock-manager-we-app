@@ -283,6 +283,15 @@ router.delete('/:id', authenticateToken, (req, res) => {
       );
     }
 
+    // Delete payments
+    const payments = db.prepare('SELECT id FROM payments WHERE order_id = ?').all(id);
+    for (const payment of payments) {
+      db.prepare('DELETE FROM payments WHERE id = ?').run(payment.id);
+      db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(
+        'payments', payment.id, 'DELETE', JSON.stringify({ id: payment.id })
+      );
+    }
+
     db.prepare('DELETE FROM orders WHERE id = ?').run(id);
 
     db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(

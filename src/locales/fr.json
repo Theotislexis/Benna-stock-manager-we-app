@@ -91,8 +91,11 @@
   "address": "Adresse",
   "no_suppliers_found": "Aucun fournisseur trouvé",
   "confirm_delete_supplier": "Êtes-vous sûr de vouloir supprimer ce fournisseur?",
+  "confirm_archive_supplier": "Afin de conserver un historique de tous les fournisseurs de l'entreprise, nous les archivons au lieu de les supprimer. Voulez-vous archiver ce fournisseur ?",
   "error_saving_supplier": "Erreur lors de l'enregistrement du fournisseur",
   "error_deleting_supplier": "Erreur lors de la suppression du fournisseur",
+  "error_archiving_supplier": "Erreur lors de l'archivage du fournisseur",
+  "archive": "Archiver",
   "orders": "Commandes",
   "create_order": "Créer une commande",
   "order_date": "Date de commande",
@@ -194,5 +197,8 @@
   "results": "résultats",
   "page": "Page",
   "previous": "Précédent",
-  "next": "Suivant"
+  "next": "Suivant",
+  "delete_order": "Supprimer la commande",
+  "confirm_delete_order": "Êtes-vous sûr de vouloir supprimer complètement cette commande ? Cela supprimera également tous les articles et paiements associés.",
+  "error_deleting_order": "Erreur lors de la suppression de la commande"
 }

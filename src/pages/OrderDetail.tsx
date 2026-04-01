@@ -201,6 +201,20 @@ export default function OrderDetail() {
     }
   };
 
+  const handleDeleteOrder = async () => {
+    if (!confirm(t('confirm_delete_order'))) return;
+
+    try {
+      await fetchApi(`/api/orders/${id}`, {
+        method: 'DELETE'
+      });
+      navigate('/orders');
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert(t('error_deleting_order'));
+    }
+  };
+
   const resetItemForm = () => {
     setItemForm({
       description: '',
@@ -263,6 +277,15 @@ export default function OrderDetail() {
           >
             <Printer className="w-5 h-5" />
             {t('print')}
+          </button>
+        )}
+        {canEdit && (
+          <button
+            onClick={handleDeleteOrder}
+            className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+            {t('delete_order')}
           </button>
         )}
       </div>

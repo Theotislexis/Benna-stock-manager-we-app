@@ -19,10 +19,10 @@ const logAudit = (userId, action, recordId, oldValues, newValues, ipAddress) => 
   );
 };
 
-// Get all suppliers
+// Get all active suppliers
 router.get('/', authenticateToken, (req, res) => {
   try {
-    const suppliers = db.prepare('SELECT * FROM suppliers ORDER BY name').all();
+    const suppliers = db.prepare("SELECT * FROM suppliers WHERE status = 'active' ORDER BY name").all();
     res.json(suppliers);
   } catch (error) {
     console.error('Error fetching suppliers:', error);
@@ -131,11 +131,8 @@ router.delete('/:id', authenticateToken, (req, res) => {
       return res.status(403).json({ message: 'Users cannot delete suppliers' });
     }
 
-    // Check if supplier has orders
-    const orderCheck = db.prepare('SELECT id FROM orders WHERE supplier_id = ? LIMIT 1').get(id);
-    if (orderCheck) {
-      return res.status(400).json({ message: 'Cannot delete supplier that has active orders' });
-    }
+    // Check if supplier has orders (optional now since archiving doesn't break relationships, but we'll leave it as you requested archiving instead of deletion explicitly)
+    // Actually, if we archive, having orders is fine. We just hide them from the dropdown.
 
     const supplier = db.prepare('SELECT * FROM suppliers WHERE id = ?').get(id);
 
@@ -143,13 +140,15 @@ router.delete('/:id', authenticateToken, (req, res) => {
       return res.status(404).json({ message: 'Supplier not found' });
     }
 
-    db.prepare('DELETE FROM suppliers WHERE id = ?').run(id);
+    db.prepare("UPDATE suppliers SET status = 'archived', sync_status = 'pending', sync_updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+
+    const updatedSupplier = db.prepare('SELECT * FROM suppliers WHERE id = ?').get(id);
 
     db.prepare('INSERT INTO sync_queue (table_name, record_id, action, data) VALUES (?, ?, ?, ?)').run(
       'suppliers',
       id,
-      'DELETE',
-      JSON.stringify(supplier)
+      'UPDATE',
+      JSON.stringify(updatedSupplier)
     );
 
     logAudit(req.user.id, 'deleted', id, supplier, null, req.ip);

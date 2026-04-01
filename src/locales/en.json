@@ -91,8 +91,11 @@
   "address": "Address",
   "no_suppliers_found": "No suppliers found",
   "confirm_delete_supplier": "Are you sure you want to delete this supplier?",
+  "confirm_archive_supplier": "In order to keep a record of all suppliers the company has used, we archive them instead of deleting them. Do you want to archive this supplier?",
   "error_saving_supplier": "Error saving supplier",
   "error_deleting_supplier": "Error deleting supplier",
+  "error_archiving_supplier": "Error archiving supplier",
+  "archive": "Archive",
   "orders": "Orders",
   "create_order": "Create Order",
   "order_date": "Order Date",
@@ -194,5 +197,8 @@
   "results": "results",
   "page": "Page",
   "previous": "Previous",
-  "next": "Next"
+  "next": "Next",
+  "delete_order": "Delete Order",
+  "confirm_delete_order": "Are you sure you want to completely delete this order? This will also remove all associated items and payments.",
+  "error_deleting_order": "Error deleting order"
 }

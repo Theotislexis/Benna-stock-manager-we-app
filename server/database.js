@@ -180,6 +180,8 @@ for (const table of tables) {
 try { db.exec(`ALTER TABLE inventory ADD COLUMN category_id TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE order_items ADD COLUMN delivered_quantity INTEGER DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN delivery_status TEXT DEFAULT 'pending'`); } catch (e) {}
+try { db.exec(`ALTER TABLE sync_queue ADD COLUMN synced BOOLEAN DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE suppliers ADD COLUMN status TEXT DEFAULT 'active'`); } catch (e) {}
 
 // Add functional indexes for performance
 try {

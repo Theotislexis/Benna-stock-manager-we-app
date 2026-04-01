@@ -251,6 +251,10 @@ const Settings: React.FC = () => {
                 </button>
               </div>
 
+              <div className="text-xs text-gray-500 italic mt-2">
+                Note: In order for the updater to detect a new version, a formal "Release" containing the built installer must be published on GitHub by the CI pipeline. Standard code commits will not trigger an update.
+              </div>
+
               {updateStatus === 'checking' && (
                 <div className="text-blue-600">
                   <span>Checking for updates...</span>

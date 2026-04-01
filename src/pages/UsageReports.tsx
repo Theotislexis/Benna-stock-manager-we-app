@@ -3,16 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { TrendingDown, Calendar, ListFilter as Filter } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 
-interface UsageData {
-  id: string;
-  name: string;
-  category: any;
-  quantity: number;
-  min_stock: number;
-  usage: number;
-  usage_percentage: string;
-}
-
 interface UsageEvent {
   id: number;
   item_name: string;
@@ -26,7 +16,6 @@ interface UsageEvent {
 
 export default function UsageReports() {
   const { t, i18n } = useTranslation();
-  const [usageData, setUsageData] = useState<UsageData[]>([]);
   const [usageEvents, setUsageEvents] = useState<UsageEvent[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,12 +27,11 @@ export default function UsageReports() {
 
   useEffect(() => {
     fetchCategories();
-    fetchUsageData();
     fetchUsageEvents();
   }, []);
 
   useEffect(() => {
-    fetchUsageData();
+    fetchUsageEvents();
   }, [filters]);
 
   const fetchCategories = async () => {
@@ -55,41 +43,21 @@ export default function UsageReports() {
     }
   };
 
-  const fetchUsageData = async () => {
+  const fetchUsageEvents = async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
       if (filters.start_date) queryParams.append('start_date', filters.start_date);
       if (filters.end_date) queryParams.append('end_date', filters.end_date);
-      if (filters.category_id) queryParams.append('category_id', filters.category_id);
-
-      const data = await fetchApi(`/api/reports/usage?${queryParams.toString()}`);
-      setUsageData(data || []);
-    } catch (error) {
-      console.error('Error fetching usage data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsageEvents = async () => {
-    try {
-      const data = await fetchApi('/api/reports/usage-events');
+      // Category filter is not directly supported by usage-events backend yet without a JOIN, but passing it for future proofing.
+      
+      const data = await fetchApi(`/api/reports/usage-events?${queryParams.toString()}`);
       setUsageEvents(data || []);
     } catch (error) {
       console.error('Error fetching usage events:', error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const getCategoryName = (category: any) => {
-    if (!category) return t('uncategorized');
-    return i18n.language === 'fr' ? category.name_fr : category.name_en;
-  };
-
-  const getUsageColor = (usage: number) => {
-    if (usage >= 50) return 'text-red-600 font-semibold';
-    if (usage >= 20) return 'text-yellow-600 font-semibold';
-    return 'text-green-600';
   };
 
   if (loading) {
@@ -163,79 +131,8 @@ export default function UsageReports() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('item_name')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('category')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('current_stock')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('usage')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('usage_rate')}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {usageData.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {item.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {getCategoryName(item.category)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.quantity}
-                  {item.quantity <= item.min_stock && (
-                    <span className="ml-2 text-xs text-red-600">({t('low_stock')})</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={getUsageColor(item.usage)}>
-                    {item.usage} {t('units')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={getUsageColor(parseFloat(item.usage_percentage))}>
-                    {item.usage_percentage}%
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {usageData.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            {t('no_usage_data_found')}
-          </div>
-        )}
-      </div>
-
-      {usageData.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">{t('insights')}</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>Total items tracked: {usageData.length}</li>
-            <li>Highest usage: {usageData[0]?.name} ({usageData[0]?.usage} {t('units')})</li>
-            <li>
-              Items below minimum stock: {usageData.filter(item => item.quantity <= item.min_stock).length}
-            </li>
-          </ul>
-        </div>
-      )}
-
       {/* Recent Usage History Section */}
-      <div className="mt-12">
+      <div className="mt-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('recent_usage_history') || 'Recent Usage History'}</h2>
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">

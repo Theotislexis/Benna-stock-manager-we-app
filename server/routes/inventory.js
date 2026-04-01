@@ -129,8 +129,8 @@ router.post('/', authenticateToken, (req, res) => {
   const { name, category, category_id, quantity, price, supplier, location, min_stock, max_stock } = req.body;
 
   // Validation: at least one of category or category_id must be present
-  if (!name || (!category && !category_id) || quantity === undefined || !price || !location) {
-    return res.status(400).json({ error: 'Required fields missing' });
+  if (!name || (!category && !category_id) || quantity === undefined || price === undefined || !location) {
+    return res.status(400).json({ error: 'Required fields missing', details: { name, category, category_id, quantity, price, location } });
   }
 
   try {
@@ -176,8 +176,8 @@ router.put('/:id', authenticateToken, (req, res) => {
     return res.status(403).json({ error: 'Editing is frozen after the 15th of the month' });
   }
 
-  if (!name || (!category && !category_id) || quantity === undefined || !price || !location) {
-    return res.status(400).json({ error: 'Required fields missing' });
+  if (!name || (!category && !category_id) || quantity === undefined || price === undefined || !location) {
+    return res.status(400).json({ error: 'Required fields missing', details: { name, category, category_id, quantity, price, location } });
   }
 
   try {

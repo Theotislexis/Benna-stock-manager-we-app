@@ -23,6 +23,7 @@ export default function Suppliers() {
   const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [formData, setFormData] = useState({
@@ -52,15 +53,16 @@ export default function Suppliers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
 
     try {
       if (editingSupplier) {
-        await fetchApi(`/suppliers/${editingSupplier.id}`, {
+        await fetchApi(`/api/suppliers/${editingSupplier.id}`, {
           method: 'PUT',
           body: JSON.stringify(formData)
         });
       } else {
-        await fetchApi('/suppliers', {
+        await fetchApi('/api/suppliers', {
           method: 'POST',
           body: JSON.stringify(formData)
         });
@@ -75,6 +77,8 @@ export default function Suppliers() {
     } catch (error) {
       console.error('Error saving supplier:', error);
       alert(t('error_saving_supplier'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -91,16 +95,18 @@ export default function Suppliers() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('confirm_delete_supplier'))) return;
-
+    if (!confirm(t('confirm_archive_supplier') || "In order to keep a record of all suppliers the company has used, we archive them instead of deleting them. Do you want to archive this supplier?")) return;
+    setSaving(true);
     try {
-      await fetchApi(`/suppliers/${id}`, { method: 'DELETE' });
+      await fetchApi(`/api/suppliers/${id}`, { method: 'DELETE' });
       fetchSuppliers();
       await refreshStatus();
       if (isOnline) triggerSync();
     } catch (error) {
-      console.error('Error deleting supplier:', error);
-      alert(t('error_deleting_supplier'));
+      console.error('Error archiving supplier:', error);
+      alert(t('error_archiving_supplier') || "Error archiving supplier");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -170,7 +176,8 @@ export default function Suppliers() {
                   <button
                     onClick={() => handleDelete(supplier.id)}
                     className="text-red-600 hover:text-red-800"
-                    title={t('delete')}
+                    title={t('archive') || "Archive"}
+                    disabled={saving}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -286,14 +293,16 @@ export default function Suppliers() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-[#001f3f] text-white py-2 rounded-lg hover:bg-[#003366] transition-colors"
+                  disabled={saving}
+                  className="flex-1 bg-[#001f3f] text-white py-2 rounded-lg hover:bg-[#003366] transition-colors disabled:opacity-50"
                 >
-                  {editingSupplier ? t('update') : t('create')}
+                  {saving ? (t('loading') || 'Saving...') : (editingSupplier ? t('update') : t('create'))}
                 </button>
                 <button
                   type="button"
+                  disabled={saving}
                   onClick={handleCloseModal}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
                 >
                   {t('cancel')}
                 </button>

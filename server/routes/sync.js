@@ -130,7 +130,7 @@ router.get('/pull', async (req, res) => {
   }
 
   try {
-    const tablesToSync = ['inventory', 'users', 'categories', 'suppliers', 'orders', 'payments', 'usage_logs', 'audit_logs']; // Define synced tables
+    const tablesToSync = ['inventory', 'users', 'categories', 'suppliers', 'orders', 'order_items', 'payments', 'usage_logs', 'audit_logs', 'sync_meta']; // Define synced tables
     
     // We need a place to store "last pulled" timestamp per table.
     // We'll create a quick meta table if we haven't.
